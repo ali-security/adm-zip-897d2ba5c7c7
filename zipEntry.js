@@ -123,10 +123,15 @@ module.exports = function (/** object */ options, /*Buffer*/ input) {
                     }
                     return data;
                 } else {
-                    inflater.inflateAsync(function (result) {
+                    inflater.inflateAsync(function (result, err) {
                         result.copy(result, 0);
                         if (callback) {
-                            if (!crc32OK(result)) {
+                            if (err) {
+                                // surface inflater failures (e.g. the output size cap being
+                                // exceeded) instead of validating the empty placeholder buffer
+                                // against the CRC
+                                callback(Buffer.alloc(0), err);
+                            } else if (!crc32OK(result)) {
                                 callback(result, Utils.Errors.BAD_CRC()); //si added error
                             } else {
                                 callback(result);
